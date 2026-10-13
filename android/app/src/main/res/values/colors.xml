@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_civic">#0F172A</color>
+    <color name="primary_saffron">#FF9933</color>
+    <color name="accent_green">#10B981</color>
+    <color name="alert_crimson">#EF4444</color>
+    <color name="warning_amber">#F59E0B</color>
+    <color name="background_light">#F8FAFC</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#64748B</color>
+</resources>

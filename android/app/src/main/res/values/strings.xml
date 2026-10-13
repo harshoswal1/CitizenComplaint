@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">NagrikVoice</string>
+    <string name="tagline">Citizen-Powered Civic Accountability</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_explore">Explore</string>
+    <string name="nav_report">Report</string>
+    <string name="nav_rankings">Rankings</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">One Problem, One Record</string>
+    <string name="onboarding_desc_1">Report local civic issues with real photographs and GPS. When others support your complaint, its priority rises without artificial duplicates.</string>
+    
+    <string name="onboarding_title_2">Option B Delivery Rule</string>
+    <string name="onboarding_desc_2">Municipal corporation unresolved counts increase ONLY when complaint emails are confirmed delivered by the mail system.</string>
+    
+    <string name="onboarding_title_3">Verified Fixes Only</string>
+    <string name="onboarding_desc_3">A problem leaves the unresolved count only after resolution evidence is independently verified. No secret closures.</string>
+
+    <!-- Permissions -->
+    <string name="permission_location_rationale">NagrikVoice requires GPS location to verify the exact physical location of civic issues and route complaints to the responsible municipal authority.</string>
+    <string name="permission_camera_rationale">Photographs must be captured through the in-app camera to preserve genuine timestamps and authenticity.</string>
+</resources>

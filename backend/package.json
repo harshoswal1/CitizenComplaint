@@ -1,0 +1,14 @@
+{
+  "name": "nagrikvoice-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Citizen-Powered Civic Accountability Platform Backend",
+  "main": "src/server.ts",
+  "scripts": {
+    "start": "node --experimental-strip-types src/server.ts",
+    "test": "node --test --experimental-strip-types tests/acceptance.test.ts"
+  },
+  "keywords": ["civic", "accountability", "kolhapur", "india", "governance"],
+  "author": "Antigravity Engineering",
+  "license": "Apache-2.0"
+}
