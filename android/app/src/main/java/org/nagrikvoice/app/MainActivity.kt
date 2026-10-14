@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import org.nagrikvoice.app.data.repository.AuthRepository
 import org.nagrikvoice.app.ui.navigation.BottomNavBar
 import org.nagrikvoice.app.ui.navigation.Screen
 import org.nagrikvoice.app.ui.screens.auth.LoginScreen
@@ -20,6 +21,7 @@ import org.nagrikvoice.app.ui.screens.detail.ComplaintDetailScreen
 import org.nagrikvoice.app.ui.screens.explore.ExploreScreen
 import org.nagrikvoice.app.ui.screens.home.HomeScreen
 import org.nagrikvoice.app.ui.screens.onboarding.OnboardingScreen
+import org.nagrikvoice.app.ui.screens.onboarding.PostRegisterOnboardingScreen
 import org.nagrikvoice.app.ui.screens.profile.ProfileScreen
 import org.nagrikvoice.app.ui.screens.rankings.RankingsScreen
 import org.nagrikvoice.app.ui.screens.report.ReportScreen
@@ -43,6 +45,14 @@ fun MainAppNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Decide the start destination based on persisted token
+    val authRepo = AuthRepository.instance
+    val startDestination = when {
+        authRepo.savedToken == null -> Screen.Login.route
+        !authRepo.isOnboardingDone() -> Screen.PostRegisterOnboarding.route
+        else -> Screen.Home.route
+    }
+
     // Show bottom navigation bar only on primary dashboard screens
     val showBottomBar = currentRoute in listOf(
         Screen.Home.route,
@@ -62,13 +72,13 @@ fun MainAppNavigation() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = startDestination,
             modifier = Modifier.padding(paddingValues)
         ) {
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
                     onFinishOnboarding = {
-                        navController.navigate(Screen.Home.route) {
+                        navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Onboarding.route) { inclusive = true }
                         }
                     }
@@ -78,8 +88,14 @@ fun MainAppNavigation() {
             composable(Screen.Login.route) {
                 LoginScreen(
                     onLoginSuccess = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                        if (!authRepo.isOnboardingDone()) {
+                            navController.navigate(Screen.PostRegisterOnboarding.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
                         }
                     },
                     onNavigateToRegister = {
@@ -91,7 +107,7 @@ fun MainAppNavigation() {
             composable(Screen.Register.route) {
                 RegisterScreen(
                     onRegisterSuccess = {
-                        navController.navigate(Screen.Home.route) {
+                        navController.navigate(Screen.PostRegisterOnboarding.route) {
                             popUpTo(Screen.Register.route) { inclusive = true }
                         }
                     },
@@ -101,10 +117,29 @@ fun MainAppNavigation() {
                 )
             }
 
+            composable(Screen.PostRegisterOnboarding.route) {
+                PostRegisterOnboardingScreen(
+                    onOnboardingComplete = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.PostRegisterOnboarding.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToDetail = { complaintId ->
                         navController.navigate(Screen.ComplaintDetail.createRoute(complaintId))
+                    },
+                    onNavigateToReport = {
+                        navController.navigate(Screen.Report.route)
+                    },
+                    onNavigateToExplore = {
+                        navController.navigate(Screen.Explore.route)
+                    },
+                    onNavigateToRankings = {
+                        navController.navigate(Screen.Rankings.route)
                     }
                 )
             }
@@ -138,7 +173,7 @@ fun MainAppNavigation() {
                 ProfileScreen(
                     onLogout = {
                         navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
+                            popUpTo(0) { inclusive = true }
                         }
                     },
                     onNavigateToDetail = { complaintId ->

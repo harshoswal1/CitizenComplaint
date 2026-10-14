@@ -22,7 +22,7 @@ sealed class SubmissionState {
 
 class ReportViewModel(
     private val complaintRepo: ComplaintRepository = ComplaintRepository(),
-    private val authRepo: AuthRepository = AuthRepository()
+    private val authRepo: AuthRepository = AuthRepository.instance
 ) : ViewModel() {
 
     private val _submissionState = MutableStateFlow<SubmissionState>(SubmissionState.Idle)

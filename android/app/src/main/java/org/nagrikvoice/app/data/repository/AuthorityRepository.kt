@@ -33,4 +33,7 @@ class AuthorityRepository {
             Result.failure(e)
         }
     }
+
+    // Convenience alias used by onboarding screen
+    suspend fun getAll(): Result<List<Authority>> = getAuthorities()
 }

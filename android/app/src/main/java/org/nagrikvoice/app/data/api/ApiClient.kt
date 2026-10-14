@@ -9,8 +9,8 @@ import java.util.concurrent.TimeUnit
 
 object ApiClient {
 
-    // Default to Android Emulator loopback to host (10.0.2.2:8080)
-    var baseUrl: String = "http://10.0.2.2:8080/api/v1/"
+    // Live Render Cloud Backend
+    var baseUrl: String = "https://citizencomplaint.onrender.com/api/v1/"
     var authToken: String? = null
 
     private val authInterceptor = Interceptor { chain ->

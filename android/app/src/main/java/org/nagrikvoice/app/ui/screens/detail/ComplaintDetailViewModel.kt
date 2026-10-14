@@ -12,7 +12,7 @@ import org.nagrikvoice.app.data.repository.ComplaintRepository
 
 class ComplaintDetailViewModel(
     private val complaintRepo: ComplaintRepository = ComplaintRepository(),
-    private val authRepo: AuthRepository = AuthRepository()
+    private val authRepo: AuthRepository = AuthRepository.instance
 ) : ViewModel() {
 
     private val _complaint = MutableStateFlow<Complaint?>(null)

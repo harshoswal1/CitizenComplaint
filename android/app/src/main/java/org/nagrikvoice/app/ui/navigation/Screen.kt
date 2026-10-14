@@ -14,6 +14,7 @@ sealed class Screen(
     object Onboarding : Screen("onboarding")
     object Login : Screen("login")
     object Register : Screen("register")
+    object PostRegisterOnboarding : Screen("post_register_onboarding")
 
     object Home : Screen(
         route = "home",
