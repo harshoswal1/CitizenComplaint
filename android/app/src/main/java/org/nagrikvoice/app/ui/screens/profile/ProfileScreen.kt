@@ -34,7 +34,7 @@ fun ProfileScreen(
     val complaintRepo = remember { ComplaintRepository() }
     val user by authRepo.currentUser.collectAsState()
 
-    val authorityName = authRepo.getSavedAuthorityName()
+    val authorityName by authRepo.selectedAuthorityName.collectAsState()
 
     var selectedTab by remember { mutableStateOf(0) }
     var myReports by remember { mutableStateOf<List<Complaint>>(emptyList()) }
@@ -48,9 +48,8 @@ fun ProfileScreen(
             val userId = user?.id
             myReports = if (userId != null) {
                 feed.complaints.filter { it.reporterId == userId }
-                    .ifEmpty { feed.complaints } // show all if none match (common in demo)
             } else {
-                feed.complaints
+                emptyList()
             }
         }.onFailure {
             myReports = emptyList()
@@ -137,7 +136,8 @@ fun ProfileScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
-                        if (!authorityName.isNullOrBlank()) {
+                        val currentAuth = authorityName
+                        if (!currentAuth.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -148,7 +148,7 @@ fun ProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 Text(
-                                    text = authorityName,
+                                    text = currentAuth,
                                     color = CivicNavy,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold

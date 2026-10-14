@@ -80,7 +80,7 @@ fun ComplaintCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${complaint.authorityName ?: "Kolhapur Municipal Corp"} • ${complaint.createdAt.take(10)}",
+                        text = "${complaint.authorityName ?: complaint.administrativeArea} • ${complaint.createdAt.take(10)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         fontSize = 12.sp

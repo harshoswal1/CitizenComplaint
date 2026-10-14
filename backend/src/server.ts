@@ -19,6 +19,7 @@ import {
   getMunicipalCorporationRankings
 } from './services/rankingService.ts';
 import { recordAuditLog } from './services/auditService.ts';
+import { seedMajorAuthorities } from './services/authoritySeed.ts';
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
@@ -26,9 +27,10 @@ const PORT = parseInt(process.env.PORT || '8080', 10);
 const db = getDb();
 try {
   importKmcDirectory(undefined, db);
-  console.log('✅ KMC Authority and 49 contacts initialized.');
+  seedMajorAuthorities(db);
+  console.log('✅ KMC Authority, major Indian Municipal Corporations, and category routes initialized.');
 } catch (err) {
-  console.error('Error importing KMC directory on startup:', err);
+  console.error('Error importing directory or seeding authorities on startup:', err);
 }
 
 // Ensure at least one default citizen and admin exist for testing

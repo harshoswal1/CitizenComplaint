@@ -44,8 +44,11 @@ fun HomeScreen(
     val complaints by viewModel.complaints.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    val authorityName = authRepo.getSavedAuthorityName() ?: "Your City"
+    val currentAuthorityName by authRepo.selectedAuthorityName.collectAsState()
+    val authorityName = currentAuthorityName ?: "Select Your Corporation"
     val firstName = user?.name?.split(" ")?.firstOrNull() ?: "Citizen"
+
+    var showAuthorityDialog by remember { mutableStateOf(false) }
 
     val saffron = Color(0xFFFF9933)
     val green = Color(0xFF138808)
@@ -125,7 +128,14 @@ fun HomeScreen(
                         fontSize = 26.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.15f))
+                            .clickable { showAuthorityDialog = true }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = null,
@@ -137,9 +147,16 @@ fun HomeScreen(
                             text = authorityName,
                             style = MaterialTheme.typography.bodyMedium,
                             color = saffron,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "▼ Change",
+                            fontSize = 10.sp,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
@@ -317,7 +334,7 @@ fun HomeScreen(
             }
         } else if (complaints.isEmpty()) {
             item {
-                EmptyFeedCard(onNavigateToReport = onNavigateToReport)
+                EmptyFeedCard(authorityName = authorityName, onNavigateToReport = onNavigateToReport)
             }
         }
 
@@ -348,6 +365,18 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    if (showAuthorityDialog) {
+        AuthoritySelectionDialog(
+            currentAuthorityId = authRepo.selectedAuthorityId.value,
+            onDismiss = { showAuthorityDialog = false },
+            onSelect = { id, name ->
+                authRepo.saveAuthorityPreference(id, name)
+                viewModel.loadFeed()
+                showAuthorityDialog = false
+            }
+        )
     }
 }
 
@@ -536,7 +565,7 @@ private fun QuickActionCard(
 }
 
 @Composable
-private fun EmptyFeedCard(onNavigateToReport: () -> Unit) {
+private fun EmptyFeedCard(authorityName: String, onNavigateToReport: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -551,14 +580,15 @@ private fun EmptyFeedCard(onNavigateToReport: () -> Unit) {
             Text(text = "🎉", fontSize = 48.sp)
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "No Complaints Yet",
+                text = "No Complaints Yet in $authorityName",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = TextPrimary,
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Be the first citizen to report a civic problem in your area!",
+                text = "Be the first citizen to report a civic issue in your municipal corporation!",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
@@ -573,4 +603,100 @@ private fun EmptyFeedCard(onNavigateToReport: () -> Unit) {
             }
         }
     }
+}
+
+private val ALL_MUNICIPAL_CORPORATIONS = listOf(
+    "Kolhapur Municipal Corporation (KMC)" to "auth_kmc_kolhapur",
+    "Brihanmumbai Municipal Corporation (BMC)" to "auth_bmc_mumbai",
+    "Pune Municipal Corporation (PMC)" to "auth_pmc_pune",
+    "Municipal Corporation of Delhi (MCD)" to "auth_mcd_delhi",
+    "Bruhat Bengaluru Mahanagara Palike (BBMP)" to "auth_bbmp_bengaluru",
+    "Greater Chennai Corporation (GCC)" to "auth_gcc_chennai",
+    "Kolkata Municipal Corporation (KMC)" to "auth_kmc_kolkata",
+    "Greater Hyderabad Municipal Corporation (GHMC)" to "auth_ghmc_hyderabad",
+    "Ahmedabad Municipal Corporation (AMC)" to "auth_amc_ahmedabad",
+    "Jaipur Municipal Corporation (JMC)" to "auth_jmc_jaipur",
+    "Surat Municipal Corporation (SMC)" to "auth_smc_surat",
+    "Nagpur Municipal Corporation (NMC)" to "auth_nmc_nagpur",
+    "Lucknow Municipal Corporation (LMC)" to "auth_lmc_lucknow",
+    "Patna Municipal Corporation (PMC)" to "auth_pmc_patna",
+    "Indore Municipal Corporation (IMC)" to "auth_imc_indore",
+    "Bhopal Municipal Corporation (BMC)" to "auth_bmc_bhopal",
+    "Thiruvananthapuram Municipal Corporation" to "auth_tmc_thiruvananthapuram",
+    "Coimbatore City Municipal Corporation (CCMC)" to "auth_cmc_coimbatore",
+    "Nashik Municipal Corporation (NMC)" to "auth_nmc_nashik",
+    "Vadodara Municipal Corporation (VMC)" to "auth_vmc_vadodara"
+)
+
+@Composable
+fun AuthoritySelectionDialog(
+    currentAuthorityId: String?,
+    onDismiss: () -> Unit,
+    onSelect: (id: String, name: String) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filtered = remember(searchQuery) {
+        if (searchQuery.isBlank()) ALL_MUNICIPAL_CORPORATIONS
+        else ALL_MUNICIPAL_CORPORATIONS.filter { it.first.contains(searchQuery, ignoreCase = true) }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Select Municipal Corporation",
+                fontWeight = FontWeight.Bold,
+                color = CivicNavy
+            )
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth().height(360.dp)) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search corporation or city...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(filtered) { (name, id) ->
+                        val isSelected = currentAuthorityId == id
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) CivicNavy.copy(alpha = 0.1f) else Color.Transparent)
+                                .clickable { onSelect(id, name) }
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "🏛️", fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) CivicNavy else TextPrimary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isSelected) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = CivicNavy, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        }
+    )
 }

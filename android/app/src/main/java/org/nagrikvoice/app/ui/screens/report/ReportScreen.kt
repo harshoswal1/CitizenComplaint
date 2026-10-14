@@ -1,11 +1,17 @@
 package org.nagrikvoice.app.ui.screens.report
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,11 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import org.nagrikvoice.app.data.model.IssueCategory
 import org.nagrikvoice.app.ui.components.DuplicateWarningDialog
 import org.nagrikvoice.app.ui.theme.*
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,9 +56,67 @@ fun ReportScreen(
     val latitude by viewModel.latitude.collectAsState()
     val longitude by viewModel.longitude.collectAsState()
     val accuracy by viewModel.locationAccuracy.collectAsState()
+    val isGpsLocked by viewModel.isGpsLocked.collectAsState()
+    val isAcquiringLocation by viewModel.isAcquiringLocation.collectAsState()
     val photoUri by viewModel.photoUri.collectAsState()
+    val cameraTimestamp by viewModel.cameraCaptureTimestamp.collectAsState()
+    val authorityName by viewModel.authorityName.collectAsState()
 
     var categoryDropdownExpanded by remember { mutableStateOf(false) }
+
+    // Camera setup with FileProvider
+    var currentPhotoFile by remember { mutableStateOf<File?>(null) }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && currentPhotoFile != null) {
+            viewModel.processCameraCapture(currentPhotoFile!!)
+            Toast.makeText(context, "Photo captured with live device metadata", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                val file = File(context.cacheDir, "civic_live_photo_${System.currentTimeMillis()}.jpg")
+                currentPhotoFile = file
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                takePictureLauncher.launch(uri)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Could not open camera: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        } else {
+            Toast.makeText(context, "Camera permission is required to capture evidence", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Location permissions launcher
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            viewModel.fetchLiveLocation(context) {}
+        } else {
+            Toast.makeText(context, "Location permission is required to geotag your complaint", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Automatically trigger GPS location acquisition on screen enter
+    LaunchedEffect(Unit) {
+        viewModel.fetchLiveLocation(context) {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
 
     // If successfully submitted, show the Submission Confirmation screen (Section 5.3)
     if (submissionState is SubmissionState.Success) {
@@ -59,7 +125,11 @@ fun ReportScreen(
             complaintId = success.complaintId,
             category = category,
             locality = locality,
+            authorityName = authorityName,
             emailStatus = success.emailStatus,
+            photoUri = photoUri,
+            latitude = latitude,
+            longitude = longitude,
             onDone = {
                 viewModel.resetState()
                 onNavigateToFeed()
@@ -76,12 +146,20 @@ fun ReportScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Report Civic Problem",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = CivicNavy
-                    )
+                    Column {
+                        Text(
+                            text = "Report Civic Issue",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = CivicNavy
+                        )
+                        Text(
+                            text = authorityName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CivicSaffron,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundLight)
             )
@@ -96,13 +174,27 @@ fun ReportScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Camera Section (Section 5.2: In-app camera requirement)
-            Text(
-                text = "1. Photographic Evidence",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
+            // ── Section 1: Photographic Evidence (In-App Camera Only) ────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "1. Live Camera Evidence",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                if (photoUri != null) {
+                    Text(
+                        text = "🟢 Verified Captured",
+                        color = CivicGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
 
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -118,7 +210,7 @@ fun ReportScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp)
+                                .height(220.dp)
                         ) {
                             AsyncImage(
                                 model = photoUri,
@@ -126,20 +218,34 @@ fun ReportScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
-                            // Timestamp overlay
+                            // Live Geotag Watermark Overlay
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.BottomStart)
-                                    .padding(8.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color.Black.copy(alpha = 0.7f))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .fillMaxWidth()
+                                    .background(Color.Black.copy(alpha = 0.75f))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
-                                Text(
-                                    text = "📸 Captured via In-App Camera • Lat: ${latitude.toString().take(6)} Lng: ${longitude.toString().take(6)}",
-                                    color = Color.White,
-                                    fontSize = 10.sp
-                                )
+                                Column {
+                                    Text(
+                                        text = "📸 LIVE IN-APP CAMERA CAPTURE",
+                                        color = CivicSaffron,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    )
+                                    Text(
+                                        text = "📍 $locality • Lat: ${latitude.toString().take(7)}, Lng: ${longitude.toString().take(7)}",
+                                        color = Color.White,
+                                        fontSize = 10.sp
+                                    )
+                                    if (cameraTimestamp != null) {
+                                        Text(
+                                            text = "⏱️ Captured: ${cameraTimestamp!!.take(19).replace("T", " ")} UTC",
+                                            color = Color.White.copy(alpha = 0.8f),
+                                            fontSize = 9.sp
+                                        )
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -147,56 +253,108 @@ fun ReportScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(160.dp)
-                                .background(Color(0xFFE2E8F0)),
+                                .background(Color(0xFFE2E8F0))
+                                .clickable {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
                                     imageVector = Icons.Default.CameraAlt,
                                     contentDescription = "Camera",
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(48.dp)
+                                    tint = CivicNavy,
+                                    modifier = Modifier.size(52.dp)
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Tap to open In-App Camera",
+                                    text = "Tap to Open Live Camera",
+                                    color = CivicNavy,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = "Must be captured live at the location",
                                     color = TextSecondary,
-                                    fontWeight = FontWeight.Medium
+                                    fontSize = 12.sp
                                 )
                             }
                         }
                     }
 
-                    // Retake / Capture Camera Buttons
+                    // Camera Action Button
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(12.dp),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        OutlinedButton(
+                        Button(
                             onClick = {
-                                // Simulate in-app camera capture with new image
-                                viewModel.setCapturedPhoto("https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=800")
-                                Toast.makeText(context, "Photo captured with device metadata", Toast.LENGTH_SHORT).show()
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                             },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (photoUri != null) CivicNavy.copy(alpha = 0.1f) else CivicNavy,
+                                contentColor = if (photoUri != null) CivicNavy else Color.White
+                            ),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = if (photoUri != null) "Retake Photo" else "Capture Photo")
+                            Text(
+                                text = if (photoUri != null) "Retake Live Photo" else "Capture Live Photo",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Transparency Notice
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF8FAFC))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "🛡️", fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Transparency Guarantee: Photos must be captured live with in-app camera. Local gallery uploads are disabled to prevent fake reports.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary,
+                                fontSize = 10.sp,
+                                lineHeight = 14.sp
+                            )
                         }
                     }
                 }
             }
 
-            // Location Section (Section 3.1 & 5.1: GPS requirement)
-            Text(
-                text = "2. Device GPS Location",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
+            // ── Section 2: Live Device Location ──────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "2. Live Geolocation",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                if (isGpsLocked) {
+                    Text(
+                        text = "🟢 GPS Active",
+                        color = CivicGreen,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
 
             Card(
                 shape = RoundedCornerShape(14.dp),
@@ -204,40 +362,91 @@ fun ReportScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(CivicGreenLight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(imageVector = Icons.Default.GpsFixed, contentDescription = null, tint = CivicGreen)
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isGpsLocked) CivicGreenLight else WarningAmber.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isAcquiringLocation) {
+                                CircularProgressIndicator(color = CivicNavy, modifier = Modifier.size(20.dp))
+                            } else {
+                                Icon(
+                                    imageVector = if (isGpsLocked) Icons.Default.GpsFixed else Icons.Default.GpsNotFixed,
+                                    contentDescription = null,
+                                    tint = if (isGpsLocked) CivicGreen else WarningAmber
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            if (isGpsLocked) {
+                                Text(
+                                    text = "📍 $locality",
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = "Target Corporation: $authorityName",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = CivicNavy
+                                )
+                                Text(
+                                    text = "Coords: ${latitude.toString().take(7)}, ${longitude.toString().take(7)} • Accuracy: ±${accuracy.toInt()}m",
+                                    fontSize = 11.sp,
+                                    color = TextSecondary
+                                )
+                            } else {
+                                Text(
+                                    text = if (isAcquiringLocation) "Acquiring live GPS fix..." else "GPS location not yet acquired",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "Turn on device location (GPS) to geotag your report",
+                                    fontSize = 12.sp,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "📍 $locality (Kolhapur Municipal Corp)",
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Coords: ${latitude.toString().take(7)}, ${longitude.toString().take(7)} (Accuracy: ±${accuracy}m)",
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.fetchLiveLocation(context) {
+                                    locationPermissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.ACCESS_FINE_LOCATION,
+                                            Manifest.permission.ACCESS_COARSE_LOCATION
+                                        )
+                                    )
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Refresh Live GPS", fontSize = 12.sp)
+                        }
                     }
                 }
             }
 
-            // Issue Details Section
+            // ── Section 3: Complaint Details ─────────────────────────────
             Text(
                 text = "3. Complaint Details",
                 style = MaterialTheme.typography.titleMedium,
@@ -254,7 +463,7 @@ fun ReportScreen(
                     value = IssueCategory.values().find { it.code == category }?.displayName ?: category,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Issue Category") },
+                    label = { Text("Issue Category *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded) },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -284,7 +493,8 @@ fun ReportScreen(
                 onValueChange = { viewModel.subtype.value = it },
                 label = { Text("Specific Subtype (e.g. Potholes, Waterlogging, Broken Lamp)") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(10.dp),
+                singleLine = true
             )
 
             // Title
@@ -294,7 +504,8 @@ fun ReportScreen(
                 label = { Text("Complaint Title *") },
                 placeholder = { Text("e.g. Deep hazardous crater on main road") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(10.dp),
+                singleLine = true
             )
 
             // Description
@@ -302,7 +513,7 @@ fun ReportScreen(
                 value = description,
                 onValueChange = { viewModel.description.value = it },
                 label = { Text("Detailed Description *") },
-                placeholder = { Text("Describe the civic hazard and its public impact...") },
+                placeholder = { Text("Describe the civic hazard and its public safety impact...") },
                 minLines = 3,
                 maxLines = 5,
                 modifier = Modifier.fillMaxWidth(),
@@ -316,20 +527,28 @@ fun ReportScreen(
                 label = { Text("Nearby Landmark (Optional)") },
                 placeholder = { Text("e.g. Opposite State Bank, Near Gate 2") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(10.dp),
+                singleLine = true
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             // Error display
             if (submissionState is SubmissionState.Error) {
-                Text(
-                    text = (submissionState as SubmissionState.Error).message,
-                    color = AlertRed,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = AlertRed.copy(alpha = 0.1f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = (submissionState as SubmissionState.Error).message,
+                        color = AlertRed,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Submit Button
             Button(
@@ -344,12 +563,13 @@ fun ReportScreen(
                 if (submissionState is SubmissionState.Submitting || submissionState is SubmissionState.CheckingDuplicates) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Checking Duplicates & Submitting...")
+                    Text(text = "Verifying & Submitting...", color = Color.White)
                 } else {
                     Text(
                         text = "Submit Verified Civic Complaint",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color.White,
+                        fontSize = 16.sp
                     )
                 }
             }
@@ -382,7 +602,11 @@ fun SubmissionConfirmationView(
     complaintId: String,
     category: String,
     locality: String,
+    authorityName: String,
     emailStatus: String,
+    photoUri: String?,
+    latitude: Double,
+    longitude: Double,
     onDone: () -> Unit,
     onViewComplaint: () -> Unit
 ) {
@@ -393,40 +617,58 @@ fun SubmissionConfirmationView(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(72.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(CivicGreenLight),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🎉", fontSize = 42.sp)
+                Text(text = "🎉", fontSize = 38.sp)
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = "Complaint Submitted Successfully!",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = "Your civic report has been securely registered in the public accountability database.",
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            if (photoUri != null) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                ) {
+                    AsyncImage(
+                        model = photoUri,
+                        contentDescription = "Uploaded evidence",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+            }
 
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -442,8 +684,10 @@ fun SubmissionConfirmationView(
                         fontSize = 16.sp
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(text = "Category: ${category.replace("_", " ")}", color = TextSecondary)
-                    Text(text = "Locality: $locality", color = TextSecondary)
+                    Text(text = "🏛️ Authority: $authorityName", fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    Text(text = "📍 Live Location: $locality", color = TextSecondary)
+                    Text(text = "🌐 Coordinates: ${latitude.toString().take(7)}, ${longitude.toString().take(7)}", color = TextSecondary, fontSize = 12.sp)
+                    Text(text = "📋 Category: ${category.replace("_", " ")}", color = TextSecondary)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     val isDelivered = emailStatus == "DELIVERED"
@@ -465,7 +709,7 @@ fun SubmissionConfirmationView(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = onViewComplaint,

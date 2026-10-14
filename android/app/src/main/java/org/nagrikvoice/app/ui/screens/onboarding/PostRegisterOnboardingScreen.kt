@@ -40,26 +40,26 @@ import org.nagrikvoice.app.ui.theme.*
 //  (Used as fallback + augmented from backend)
 // ──────────────────────────────────────────────
 private val POPULAR_CORPORATIONS = listOf(
-    "Brihanmumbai Municipal Corporation (BMC)" to "maharashtra",
-    "Delhi Municipal Corporation (MCD)" to "delhi",
-    "Bruhat Bengaluru Mahanagara Palike (BBMP)" to "karnataka",
-    "Greater Chennai Corporation (GCC)" to "tamilnadu",
-    "Kolkata Municipal Corporation (KMC)" to "westbengal",
-    "Hyderabad Municipal Corporation (GHMC)" to "telangana",
-    "Pune Municipal Corporation (PMC)" to "maharashtra",
-    "Ahmedabad Municipal Corporation (AMC)" to "gujarat",
-    "Jaipur Municipal Corporation" to "rajasthan",
-    "Surat Municipal Corporation (SMC)" to "gujarat",
-    "Nagpur Municipal Corporation (NMC)" to "maharashtra",
-    "Lucknow Municipal Corporation (LMC)" to "uttarpradesh",
-    "Kolhapur Municipal Corporation (KMC)" to "maharashtra",
-    "Patna Municipal Corporation" to "bihar",
-    "Indore Municipal Corporation (IMC)" to "madhyapradesh",
-    "Bhopal Municipal Corporation (BMC)" to "madhyapradesh",
-    "Thiruvananthapuram Municipal Corporation" to "kerala",
-    "Coimbatore City Municipal Corporation" to "tamilnadu",
-    "Nashik Municipal Corporation" to "maharashtra",
-    "Vadodara Municipal Corporation (VMC)" to "gujarat"
+    "Kolhapur Municipal Corporation (KMC)" to "auth_kmc_kolhapur",
+    "Brihanmumbai Municipal Corporation (BMC)" to "auth_bmc_mumbai",
+    "Pune Municipal Corporation (PMC)" to "auth_pmc_pune",
+    "Municipal Corporation of Delhi (MCD)" to "auth_mcd_delhi",
+    "Bruhat Bengaluru Mahanagara Palike (BBMP)" to "auth_bbmp_bengaluru",
+    "Greater Chennai Corporation (GCC)" to "auth_gcc_chennai",
+    "Kolkata Municipal Corporation (KMC)" to "auth_kmc_kolkata",
+    "Greater Hyderabad Municipal Corporation (GHMC)" to "auth_ghmc_hyderabad",
+    "Ahmedabad Municipal Corporation (AMC)" to "auth_amc_ahmedabad",
+    "Jaipur Municipal Corporation (JMC)" to "auth_jmc_jaipur",
+    "Surat Municipal Corporation (SMC)" to "auth_smc_surat",
+    "Nagpur Municipal Corporation (NMC)" to "auth_nmc_nagpur",
+    "Lucknow Municipal Corporation (LMC)" to "auth_lmc_lucknow",
+    "Patna Municipal Corporation (PMC)" to "auth_pmc_patna",
+    "Indore Municipal Corporation (IMC)" to "auth_imc_indore",
+    "Bhopal Municipal Corporation (BMC)" to "auth_bmc_bhopal",
+    "Thiruvananthapuram Municipal Corporation" to "auth_tmc_thiruvananthapuram",
+    "Coimbatore City Municipal Corporation (CCMC)" to "auth_cmc_coimbatore",
+    "Nashik Municipal Corporation (NMC)" to "auth_nmc_nashik",
+    "Vadodara Municipal Corporation (VMC)" to "auth_vmc_vadodara"
 )
 
 @Composable
@@ -104,14 +104,8 @@ fun PostRegisterOnboardingScreen(
 
     // Combine backend authorities + popular corporations list
     val allAuthorities: List<Pair<String, String>> = remember(backendAuthorities) {
-        val combined = backendAuthorities.toMutableList()
-        // Add popular ones that aren't in backend (use name as id fallback)
-        POPULAR_CORPORATIONS.forEach { (name, _) ->
-            if (combined.none { it.first.contains(name.substringBefore(" (").take(10), ignoreCase = true) }) {
-                combined.add(name to name)
-            }
-        }
-        combined
+        val list = if (backendAuthorities.isNotEmpty()) backendAuthorities else POPULAR_CORPORATIONS
+        list
     }
 
     val filteredAuthorities = remember(searchQuery, allAuthorities) {

@@ -43,7 +43,7 @@ data class CreateComplaintRequest(
     val landmark: String? = null,
     val locality: String,
     @SerializedName("administrative_area") val administrativeArea: String? = null,
-    @SerializedName("authority_id") val authorityId: String = "auth_kmc_kolhapur",
+    @SerializedName("authority_id") val authorityId: String,
     @SerializedName("simulate_delivery") val simulateDelivery: Boolean = true,
     @SerializedName("delivery_outcome") val deliveryOutcome: String = "DELIVERED",
     @SerializedName("camera_capture_timestamp") val cameraCaptureTimestamp: String? = null

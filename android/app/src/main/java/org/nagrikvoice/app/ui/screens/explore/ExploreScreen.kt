@@ -48,7 +48,9 @@ fun ExploreScreen(
                 it.complaints.filter { c ->
                     c.title.contains(searchQuery, ignoreCase = true) ||
                             c.locality.contains(searchQuery, ignoreCase = true) ||
-                            c.description.contains(searchQuery, ignoreCase = true)
+                            c.description.contains(searchQuery, ignoreCase = true) ||
+                            (c.authorityName?.contains(searchQuery, ignoreCase = true) == true) ||
+                            c.administrativeArea.contains(searchQuery, ignoreCase = true)
                 }
             }
         }

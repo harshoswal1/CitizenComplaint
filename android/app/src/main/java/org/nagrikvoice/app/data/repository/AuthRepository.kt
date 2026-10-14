@@ -22,6 +22,12 @@ class AuthRepository private constructor(context: Context) {
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
+    private val _selectedAuthorityId = MutableStateFlow<String?>(prefs.getString(KEY_AUTHORITY_ID, null))
+    val selectedAuthorityId: StateFlow<String?> = _selectedAuthorityId.asStateFlow()
+
+    private val _selectedAuthorityName = MutableStateFlow<String?>(prefs.getString(KEY_AUTHORITY_NAME, null))
+    val selectedAuthorityName: StateFlow<String?> = _selectedAuthorityName.asStateFlow()
+
     // Expose saved token so MainActivity can check on cold start
     val savedToken: String? get() = prefs.getString(KEY_TOKEN, null)
 
@@ -96,6 +102,8 @@ class AuthRepository private constructor(context: Context) {
     }
 
     fun saveAuthorityPreference(authorityId: String, authorityName: String) {
+        _selectedAuthorityId.value = authorityId
+        _selectedAuthorityName.value = authorityName
         prefs.edit()
             .putString(KEY_AUTHORITY_ID, authorityId)
             .putString(KEY_AUTHORITY_NAME, authorityName)

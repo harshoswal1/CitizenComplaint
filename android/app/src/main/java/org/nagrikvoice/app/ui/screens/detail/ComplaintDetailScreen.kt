@@ -70,7 +70,7 @@ fun ComplaintDetailScreen(
                             type = "text/plain"
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "Follow civic complaint ${complaint?.id} in Kolhapur: ${complaint?.title}\nhttps://nagrikvoice.org/complaints/${complaint?.id}"
+                                "Follow civic complaint ${complaint?.id} in ${complaint?.authorityName ?: complaint?.locality}: ${complaint?.title}\nhttps://citizencomplaint.onrender.com/complaints/${complaint?.id}"
                             )
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Share Issue"))
@@ -188,8 +188,8 @@ fun ComplaintDetailScreen(
                             color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "🏛️ ${c.authorityName ?: "Kolhapur Municipal Corporation"}", fontWeight = FontWeight.SemiBold)
-                        Text(text = "🏢 Department: ${c.departmentName ?: "City Engineer / PWD"}", color = TextSecondary)
+                        Text(text = "🏛️ ${c.authorityName ?: c.administrativeArea}", fontWeight = FontWeight.SemiBold)
+                        Text(text = "🏢 Department: ${c.departmentName ?: "Civic Works Department"}", color = TextSecondary)
                         Text(text = "📍 Locality: ${c.locality}", color = TextSecondary)
                         Text(text = "🌐 Coords: ${c.latitude.toString().take(7)}, ${c.longitude.toString().take(7)}", color = TextSecondary)
 

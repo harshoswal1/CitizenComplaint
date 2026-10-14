@@ -53,65 +53,18 @@ class HomeViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             val filterParam = if (_filter.value == "all") null else _filter.value
+            val authorityId = authRepo.selectedAuthorityId.value
             val res = complaintRepo.getFeed(
                 filter = filterParam,
                 category = _selectedCategory.value,
-                latitude = 16.7050, // Kolhapur default center
-                longitude = 74.2433
+                authorityId = authorityId
             )
             res.onSuccess { feed ->
                 _complaints.value = feed.complaints
             }.onFailure {
-                // If offline or empty, provide mock items for smooth UI experience
+                // If network failure and list is empty, keep as emptyList()
                 if (_complaints.value.isEmpty()) {
-                    _complaints.value = listOf(
-                        Complaint(
-                            id = "KMC-2026-0001",
-                            reporterId = "usr_1",
-                            title = "Hazardous deep pothole near Circuit House gate",
-                            description = "Road crater spanning 1.5m creating heavy traffic congestion and 2-wheeler skidding risks.",
-                            category = "ROADS_AND_INFRASTRUCTURE",
-                            subtype = "Potholes",
-                            photoUrl = "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800",
-                            latitude = 16.7112,
-                            longitude = 74.2385,
-                            locality = "Tarabai Park",
-                            administrativeArea = "Kolhapur Municipal Corporation",
-                            authorityId = "auth_kmc_kolhapur",
-                            authorityName = "Kolhapur Municipal Corp",
-                            emailStatus = "DELIVERED",
-                            resolutionStatus = "UNRESOLVED",
-                            supportCount = 24,
-                            isOverdue = 1,
-                            userHasSupported = 0,
-                            submissionTimestamp = "2026-10-10T10:00:00Z",
-                            deliveredTimestamp = "2026-10-10T10:05:00Z",
-                            createdAt = "2026-10-10T10:00:00Z"
-                        ),
-                        Complaint(
-                            id = "KMC-2026-0002",
-                            reporterId = "usr_2",
-                            title = "Garbage pile overflow on 5th Lane junction",
-                            description = "Solid waste bins overflowing for over 3 days causing public health and sanitation hazard.",
-                            category = "WASTE_MANAGEMENT",
-                            subtype = "Garbage accumulation",
-                            photoUrl = "https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=800",
-                            latitude = 16.6920,
-                            longitude = 74.2410,
-                            locality = "Rajarampuri",
-                            administrativeArea = "Kolhapur Municipal Corporation",
-                            authorityId = "auth_kmc_kolhapur",
-                            authorityName = "Kolhapur Municipal Corp",
-                            emailStatus = "DELIVERED",
-                            resolutionStatus = "UNRESOLVED",
-                            supportCount = 18,
-                            isOverdue = 0,
-                            userHasSupported = 1,
-                            submissionTimestamp = "2026-10-12T14:30:00Z",
-                            deliveredTimestamp = "2026-10-12T14:35:00Z",
-                            createdAt = "2026-10-12T14:30:00Z"
-                        )
-                    )
+                    _complaints.value = emptyList()
                 }
             }
             _isLoading.value = false
