@@ -20,15 +20,17 @@ import {
 } from './services/rankingService.ts';
 import { recordAuditLog } from './services/auditService.ts';
 import { seedMajorAuthorities } from './services/authoritySeed.ts';
+import { importMaharashtraDirectory } from './services/maharashtraDirectoryImporter.ts';
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
-// Initialize DB and CSV directory
+// Initialize DB and CSV directories
 const db = getDb();
 try {
   importKmcDirectory(undefined, db);
+  importMaharashtraDirectory(undefined, db);
   seedMajorAuthorities(db);
-  console.log('✅ KMC Authority, major Indian Municipal Corporations, and category routes initialized.');
+  console.log('✅ 32 Maharashtra Authorities, 200+ contacts, and all department routes successfully initialized.');
 } catch (err) {
   console.error('Error importing directory or seeding authorities on startup:', err);
 }

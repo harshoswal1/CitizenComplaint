@@ -36,30 +36,42 @@ import org.nagrikvoice.app.data.repository.AuthorityRepository
 import org.nagrikvoice.app.ui.theme.*
 
 // ──────────────────────────────────────────────
-//  POPULAR MUNICIPAL CORPORATIONS IN INDIA
-//  (Used as fallback + augmented from backend)
+//  ALL 32 MAHARASHTRA MUNICIPAL CORPORATIONS & COUNCILS
+//  (Pre-populated fallback + augmented from backend)
 // ──────────────────────────────────────────────
 private val POPULAR_CORPORATIONS = listOf(
     "Kolhapur Municipal Corporation (KMC)" to "auth_kmc_kolhapur",
-    "Brihanmumbai Municipal Corporation (BMC)" to "auth_bmc_mumbai",
-    "Pune Municipal Corporation (PMC)" to "auth_pmc_pune",
-    "Municipal Corporation of Delhi (MCD)" to "auth_mcd_delhi",
-    "Bruhat Bengaluru Mahanagara Palike (BBMP)" to "auth_bbmp_bengaluru",
-    "Greater Chennai Corporation (GCC)" to "auth_gcc_chennai",
-    "Kolkata Municipal Corporation (KMC)" to "auth_kmc_kolkata",
-    "Greater Hyderabad Municipal Corporation (GHMC)" to "auth_ghmc_hyderabad",
-    "Ahmedabad Municipal Corporation (AMC)" to "auth_amc_ahmedabad",
-    "Jaipur Municipal Corporation (JMC)" to "auth_jmc_jaipur",
-    "Surat Municipal Corporation (SMC)" to "auth_smc_surat",
-    "Nagpur Municipal Corporation (NMC)" to "auth_nmc_nagpur",
-    "Lucknow Municipal Corporation (LMC)" to "auth_lmc_lucknow",
-    "Patna Municipal Corporation (PMC)" to "auth_pmc_patna",
-    "Indore Municipal Corporation (IMC)" to "auth_imc_indore",
-    "Bhopal Municipal Corporation (BMC)" to "auth_bmc_bhopal",
-    "Thiruvananthapuram Municipal Corporation" to "auth_tmc_thiruvananthapuram",
-    "Coimbatore City Municipal Corporation (CCMC)" to "auth_cmc_coimbatore",
-    "Nashik Municipal Corporation (NMC)" to "auth_nmc_nashik",
-    "Vadodara Municipal Corporation (VMC)" to "auth_vmc_vadodara"
+    "Brihanmumbai Municipal Corporation (BMC)" to "auth_mumbai",
+    "Pune Municipal Corporation (PMC)" to "auth_pune",
+    "Pimpri-Chinchwad Municipal Corporation (PCMC)" to "auth_pimpri",
+    "Thane Municipal Corporation (TMC)" to "auth_thane",
+    "Nashik Municipal Corporation (NMC)" to "auth_nashik",
+    "Kalyan-Dombivli Municipal Corporation (KDMC)" to "auth_kalyan",
+    "Mira-Bhayandar Municipal Corporation (MBMC)" to "auth_bhayandar",
+    "Vasai-Virar City Municipal Corporation (VVCMC)" to "auth_vasai",
+    "Chhatrapati Sambhajinagar Municipal Corporation (CSMC)" to "auth_chhatrapati",
+    "Solapur Municipal Corporation (SMC)" to "auth_solapur",
+    "Amravati Municipal Corporation (AMC)" to "auth_amravati",
+    "Akola Municipal Corporation (AMC)" to "auth_akola",
+    "Panvel Municipal Corporation (PMC)" to "auth_panvel",
+    "Bhiwandi-Nizampur Municipal Corporation (BNMC)" to "auth_bhiwandi",
+    "Ulhasnagar Municipal Corporation (UMC)" to "auth_ulhasnagar",
+    "Sangli-Miraj-Kupwad Municipal Corporation (SMKMC)" to "auth_sangli",
+    "Malegaon Municipal Corporation (MMC)" to "auth_malegaon",
+    "Jalgaon Municipal Corporation (JMC)" to "auth_jalgaon",
+    "Latur Municipal Corporation (LMC)" to "auth_latur",
+    "Dhule Municipal Corporation (DMC)" to "auth_dhule",
+    "Ahilyanagar Municipal Corporation" to "auth_ahilyanagar",
+    "Chandrapur Municipal Corporation (CMC)" to "auth_chandrapur",
+    "Parbhani Municipal Corporation (PMC)" to "auth_parbhani",
+    "Jalna Municipal Corporation (JMC)" to "auth_jalna",
+    "Nanded-Waghala Municipal Corporation (NWMC)" to "auth_nanded",
+    "Satara Municipal Council" to "auth_satara",
+    "Baramati Municipal Council" to "auth_baramati",
+    "Beed Municipal Council" to "auth_beed",
+    "Gondia Municipal Council" to "auth_gondia",
+    "Wardha Municipal Council" to "auth_wardha",
+    "Yavatmal Municipal Council" to "auth_yavatmal"
 )
 
 @Composable
